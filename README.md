@@ -4,8 +4,8 @@
 GET  /api/bills/unpaid/room/{roomId}           // 获取房屋未缴费账单
 GET  /api/bills/unpaid/owner/{ownerId}         // 获取业主未缴费账单
 POST /api/bills/generate                       // 生成月度账单
-POST /api/bills/pay                           // 创建支付订单
-POST /api/bills/callback/{paymentMethod}      // 支付回调
+POST /api/bills/pay                            // 创建支付订单
+POST /api/bills/callback/{paymentMethod}       // 支付回调
 
 // 2. 配置管理
 GET  /api/config/{configKey}                  // 获取单个配置

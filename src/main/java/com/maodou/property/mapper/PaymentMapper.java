@@ -14,6 +14,6 @@ public interface PaymentMapper extends BaseMapper<Payment> {
     @Select("SELECT * FROM payments WHERE bill_id = #{billId}")
     List<Payment> findPaymentsByBillId(@Param("billId") Long billId);
 
-    @Select("SELECT * FROM payments WHERE room_id = #{roomId} AND status = #{status}")
+        @Select("SELECT * FROM payments WHERE room_id = #{roomId} AND status = #{status}")
     List<Payment> findPaymentsByRoomIdAndStatus(@Param("roomId") Long roomId, @Param("status") Integer status);
 }

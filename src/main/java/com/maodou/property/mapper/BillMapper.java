@@ -27,4 +27,10 @@ public interface BillMapper extends BaseMapper<Bill> {
             WHERE r.owner_id = #{ownerId} AND b.status = #{status}
             """)
     List<Bill> findBillsByOwnerIdAndStatus(@Param("ownerId") Long ownerId, @Param("status") Integer status);
+
+    @Select("SELECT * FROM bills WHERE bill_month = #{billMonth}")
+    List<Bill> selectByMonth(String billMonth);
+
+    @Select("SELECT * FROM bills WHERE room_id = #{roomId}")
+    List<Bill> selectByRoomId(Long roomId);
 }
