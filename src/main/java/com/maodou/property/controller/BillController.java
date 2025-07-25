@@ -55,7 +55,8 @@ public class BillController {
                 request.getWaterUsage(),
                 request.getElectricUsage(),
                 request.getGasUsage(),
-                request.getParkingSpaces()
+                request.getParkingSpaces(),
+                request.getIsVacant()
         );
         return Result.success("账单生成成功");
     }

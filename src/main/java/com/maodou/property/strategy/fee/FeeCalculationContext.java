@@ -18,5 +18,6 @@ public class FeeCalculationContext {
     private BigDecimal electricUsage; // 用电量
     private BigDecimal gasUsage; // 燃气用量
     private Integer parkingSpaces; // 停车位数量
+    private Boolean isVacant; // 是否空置
     private Map<String, Object> additionalParams;
 }

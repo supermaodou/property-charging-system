@@ -13,4 +13,5 @@ public class GenerateBillRequest {
     private BigDecimal electricUsage;
     private BigDecimal gasUsage;
     private Integer parkingSpaces;
+    private Boolean isVacant; // 是否空置
 }

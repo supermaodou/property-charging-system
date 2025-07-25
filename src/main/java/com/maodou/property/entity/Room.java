@@ -39,6 +39,12 @@ public class Room {
     
     @TableField("room_type")
     private String roomType; // 房屋类型：住宅、商铺等
+
+    @TableField("is_vacant")
+    private Boolean isVacant; // 是否空置房屋
+
+    @TableField("has_elevator")
+    private Boolean hasElevator; // 是否有电梯
     
     @TableField("create_time")
     private LocalDateTime createTime;

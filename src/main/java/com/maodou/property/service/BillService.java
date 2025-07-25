@@ -31,6 +31,9 @@ public class BillService {
     @Autowired
     private FeeCalculationStrategyFactory feeCalculationFactory;
 
+    @Autowired
+    private SystemConfigService configService;
+
     /**
      * 生成账单
      */
@@ -61,11 +64,41 @@ public class BillService {
                 break;
             case PROPERTY_FEE:
                 bill.setUsageAmount(context.getRoom().getArea());
-                bill.setUnitPrice(new BigDecimal("2.5"));
+                bill.setUnitPrice(configService.getDecimalConfig("property_fee_unit_price"));
                 break;
             case PARKING_FEE:
                 bill.setUsageAmount(new BigDecimal(context.getParkingSpaces()));
-                bill.setUnitPrice(new BigDecimal("200"));
+                bill.setUnitPrice(configService.getDecimalConfig("parking_fee_monthly"));
+                break;
+            case ELEVATOR_FEE:
+                String elevatorMethod = configService.getConfigValue("elevator_fee_calculation_method");
+                if ("BY_AREA".equals(elevatorMethod)) {
+                    bill.setUsageAmount(context.getRoom().getArea());
+                    bill.setUnitPrice(configService.getDecimalConfig("elevator_fee_unit_price_area"));
+                } else {
+                    bill.setUsageAmount(BigDecimal.ONE);
+                    bill.setUnitPrice(configService.getDecimalConfig("elevator_fee_monthly_per_room"));
+                }
+                break;
+            case GARBAGE_FEE:
+                String garbageMethod = configService.getConfigValue("garbage_fee_calculation_method");
+                if ("BY_AREA".equals(garbageMethod)) {
+                    bill.setUsageAmount(context.getRoom().getArea());
+                    bill.setUnitPrice(configService.getDecimalConfig("garbage_fee_unit_price_area"));
+                } else if ("BY_PERSON".equals(garbageMethod)) {
+                    Integer residentCount = context.getRoom().getResidentCount() != null ? context.getRoom().getResidentCount() : 1;
+                    bill.setUsageAmount(new BigDecimal(residentCount));
+                    bill.setUnitPrice(configService.getDecimalConfig("garbage_fee_unit_price_person"));
+                } else {
+                    bill.setUsageAmount(BigDecimal.ONE);
+                    bill.setUnitPrice(configService.getDecimalConfig("garbage_fee_monthly_per_room"));
+                }
+                break;
+            case VACANCY_FEE:
+                bill.setUsageAmount(context.getRoom().getArea());
+                BigDecimal propertyFeeUnitPrice = configService.getDecimalConfig("property_fee_unit_price");
+                BigDecimal vacancyFeeRate = configService.getDecimalConfig("vacancy_fee_rate");
+                bill.setUnitPrice(propertyFeeUnitPrice.multiply(vacancyFeeRate));
                 break;
         }
 
@@ -91,7 +124,8 @@ public class BillService {
      * 批量生成月度账单
      */
     public void generateMonthlyBills(Long roomId, String billMonth,
-                                     BigDecimal waterUsage, BigDecimal electricUsage, BigDecimal gasUsage, Integer parkingSpaces) {
+                                     BigDecimal waterUsage, BigDecimal electricUsage, BigDecimal gasUsage,
+                                     Integer parkingSpaces, Boolean isVacant) {
 
         Room room = roomMapper.selectById(roomId);
         if (room == null) {
@@ -106,25 +140,43 @@ public class BillService {
                 .electricUsage(electricUsage)
                 .gasUsage(gasUsage)
                 .parkingSpaces(parkingSpaces)
+                .isVacant(isVacant)
                 .build();
 
-        // 生成各类费用账单
+        // 生成物业费账单
         generateBill(roomId, FeeType.PROPERTY_FEE, billMonth, context);
 
+        // 生成水费账单
         if (waterUsage != null && waterUsage.compareTo(BigDecimal.ZERO) > 0) {
             generateBill(roomId, FeeType.WATER_FEE, billMonth, context);
         }
 
+        // 生成电费账单
         if (electricUsage != null && electricUsage.compareTo(BigDecimal.ZERO) > 0) {
             generateBill(roomId, FeeType.ELECTRIC_FEE, billMonth, context);
         }
 
+        // 生成燃气费账单
         if (gasUsage != null && gasUsage.compareTo(BigDecimal.ZERO) > 0) {
             generateBill(roomId, FeeType.GAS_FEE, billMonth, context);
         }
 
+        // 生成停车费账单
         if (parkingSpaces != null && parkingSpaces > 0) {
             generateBill(roomId, FeeType.PARKING_FEE, billMonth, context);
+        }
+
+        // 生成电梯费账单
+        if (room.getHasElevator() != null && room.getHasElevator()) {
+            generateBill(roomId, FeeType.ELEVATOR_FEE, billMonth, context);
+        }
+
+        // 生成垃圾费账单
+        generateBill(roomId, FeeType.GARBAGE_FEE, billMonth, context);
+
+        // 生成房屋空置费账单
+        if (isVacant != null && isVacant) {
+            generateBill(roomId, FeeType.VACANCY_FEE, billMonth, context);
         }
     }
 }

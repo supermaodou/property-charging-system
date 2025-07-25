@@ -1,6 +1,8 @@
 package com.maodou.property.strategy.fee;
 
 import com.maodou.property.enums.FeeType;
+import com.maodou.property.service.SystemConfigService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -9,24 +11,34 @@ import java.math.BigDecimal;
 @Component
 public class ElectricFeeCalculationStrategy implements FeeCalculationStrategy {
 
+    @Autowired
+    private SystemConfigService configService;
+
     @Override
     public BigDecimal calculateFee(FeeCalculationContext context) {
         // 阶梯电费计算
         BigDecimal usage = context.getElectricUsage();
+        if (usage == null || usage.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal tier1Limit = configService.getDecimalConfig("electric_fee_tier1_limit");
+        BigDecimal tier2Limit = configService.getDecimalConfig("electric_fee_tier2_limit");
+        BigDecimal tier1Price = configService.getDecimalConfig("electric_fee_tier1_price");
+        BigDecimal tier2Price = configService.getDecimalConfig("electric_fee_tier2_price");
+        BigDecimal tier3Price = configService.getDecimalConfig("electric_fee_tier3_price");
+
         BigDecimal totalFee = BigDecimal.ZERO;
 
-        if (usage.compareTo(new BigDecimal("200")) <= 0) {
-            // 200度以内，0.5元/度
-            totalFee = usage.multiply(new BigDecimal("0.5"));
-        } else if (usage.compareTo(new BigDecimal("400")) <= 0) {
-            // 200-400度，0.6元/度
-            totalFee = new BigDecimal("200").multiply(new BigDecimal("0.5"))
-                    .add(usage.subtract(new BigDecimal("200")).multiply(new BigDecimal("0.6")));
+        if (usage.compareTo(tier1Limit) <= 0) {
+            totalFee = usage.multiply(tier1Price);
+        } else if (usage.compareTo(tier2Limit) <= 0) {
+            totalFee = tier1Limit.multiply(tier1Price)
+                    .add(usage.subtract(tier1Limit).multiply(tier2Price));
         } else {
-            // 400度以上，0.8元/度
-            totalFee = new BigDecimal("100") // 前200度
-                    .add(new BigDecimal("120")) // 200-400度
-                    .add(usage.subtract(new BigDecimal("400")).multiply(new BigDecimal("0.8")));
+            totalFee = tier1Limit.multiply(tier1Price)
+                    .add(tier2Limit.subtract(tier1Limit).multiply(tier2Price))
+                    .add(usage.subtract(tier2Limit).multiply(tier3Price));
         }
 
         return totalFee;
